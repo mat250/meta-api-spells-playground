@@ -1,0 +1,38 @@
+{
+  "name": "meta-api-spells-playground",
+  "version": "0.1.0",
+  "description": "Meta API Spells",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon -w src --exec \"babel-node src \"",
+    "build": "babel src -s -D -d dist ",
+    "debug": "NODE_ENV=development nodemon -w src --exec \"babel-node src \" --inspect",
+    "start": "babel src -s -D -d dist && node dist"
+  },
+  "author": "mat250 <mat250.alter@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.16.1",
+    "meta-api-sdk": "file:../meta-api-sdk",
+    "request": "^2.83.0"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-core": "^6.26.0",
+    "babel-preset-env": "^1.6.0",
+    "eslint": "^3.1.1",
+    "nodemon": "^1.9.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mat250/meta-api-spells-playground.git"
+  },
+  "keywords": [
+    "meta-api",
+    "api"
+  ],
+  "bugs": {
+    "url": "https://github.com/mat250/meta-api-spells-playground/issues"
+  },
+  "homepage": "https://github.com/mat250/meta-api-spells-playground#readme"
+}
