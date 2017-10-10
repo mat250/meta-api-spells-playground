@@ -15,6 +15,8 @@ app.get('/', function (req, res) {
      * Your code start here #########
      */
 
+    console.log("Params available : ", params);
+
     mapi_sdk.import([
       {
         "id": 0,
