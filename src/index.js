@@ -9,8 +9,8 @@ app.get('/', function (req, res) {
   var params = req.query; //Query parameters will be accessible through "params";
 
   //Simulating final execution environment
-  var simulatedEnv = function (callback) {
-    
+  var simulatedEnv = function (exit) {
+
     /**
      * Your code start here #########
      */
@@ -64,7 +64,7 @@ app.get('/', function (req, res) {
     mapi_sdk.launch(function (error, result) {
 
       if (error) {
-        callback(error, null);
+        throw err;
       }
 
       let myResults = [];
@@ -104,7 +104,7 @@ app.get('/', function (req, res) {
       //Using params
       if (params.max_price != null) {
         let newResults = [];
-        myResults.forEach(function(result) {
+        myResults.forEach(function (result) {
           if (result.price < params.max_price) {
             newResults.push(result);
           }
@@ -116,25 +116,22 @@ app.get('/', function (req, res) {
        * This fonction is mandatory to return your reusults
        * First param is error to manage erros and the second is the result
        */
-      callback(null, myResults);
+      exit(myResults);
 
       /**
        * Your code end here #######
        */
-      
+
     })
   }
 
   //Simulating results
-  simulatedEnv(function (error, result) {
-    if (error) {
-      res.status(500).send({success: false, msg: error});
-    } else {
-      res.json(result);
-    }
+  simulatedEnv(function (result) {
+    res.json(result);
   });
+
 })
 
-app.listen(3000, function () {
-  console.log('Meta API - Spells Playground listening on port 3000!')
+app.listen(4000, function () {
+  console.log('Meta API - Spells Playground listening on port 4000!')
 });

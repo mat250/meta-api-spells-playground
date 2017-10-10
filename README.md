@@ -17,6 +17,6 @@ You have an example ready to use ;)
 
 For an easy dev, launch the app with `npm run dev` which will autoreload the app on changed.
 
-Then, just open the http://localhost:3000/ on your favorite browser or on tools like Postman.
+Then, just open the http://localhost:4000/ on your favorite browser or on tools like Postman.
 
 Meta API SDK is already included and configured. You can access to query parameters you put in the URL with `params` variable.
