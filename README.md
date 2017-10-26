@@ -10,7 +10,7 @@ More info about **Meta API Spells** here : https://meta-api.io/spells
 
 1. `npm install`
 
-2. `npm run dev` : auto reload or `npm run debug` : debugger enabled
+2. `npm run dev` : **auto reload** or `npm run debug` : **debugger enabled**
 
 3. Copy / Paste your code on [Meta API Spells](https://meta-api.io/spells)
 
