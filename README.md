@@ -12,7 +12,7 @@ Install all the dependancies with `npm install`
 
 Open it with your favorite editor. I've add some nice tools for VS Code ;)
 
-Build your code between the indicated notes. So, you'll just need to copy / paste this section to Meta API Spells Admin after.
+Build your code between the indicated notes. So, you'll just need to copy / paste this section to Meta API Spells page after here : https://meta-api.io/spells.
 You have an example ready to use ;)
 
 For an easy dev, launch the app with `npm run dev` which will autoreload the app on changed.
@@ -20,3 +20,5 @@ For an easy dev, launch the app with `npm run dev` which will autoreload the app
 Then, just open the http://localhost:4000/ on your favorite browser or on tools like Postman.
 
 Meta API SDK is already included and configured. You can access to query parameters you put in the URL with `params` variable.
+
+If you want to use the debugger inside Visual Studio Code (pre-configured for you), use `npm run debug`

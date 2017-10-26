@@ -4,18 +4,22 @@ var mapi_sdk = require('meta-api-sdk');
 
 app.get('/', function (req, res) {
 
-  mapi_sdk.config('dev'); //You'll be able to change the URL of Meta API SDK if you want to use a proxy
+  mapi_sdk.config('prod'); //You'll be able to change the URL of Meta API SDK if you want to use a proxy
 
-  var params = req.query; //Query parameters will be accessible through "params";
+  var params = req.query; //Query parameters will be accessible through "params" inside the simulated environment
 
   //Simulating final execution environment
   var simulatedEnv = function (exit) {
 
+    // ##########################################################################
     /**
-     * Your code start here #########
+     * Your code start here 😃
      */
 
-    console.log("Params available : ", params);
+    //Starting with importing a Meta API conf
+    //Help could be found here to build the object : 
+    //Catalog : https://meta-api.io/catalog/
+    //Doc : https://meta-api.io/doc
 
     mapi_sdk.import([
       {
@@ -24,7 +28,7 @@ app.get('/', function (req, res) {
         "params": [
           {
             "name": "address",
-            "value": "1 rue de Rivoli 75001 Paris"
+            "value": params.address_departure
           }
         ]
       },
@@ -34,7 +38,7 @@ app.get('/', function (req, res) {
         "params": [
           {
             "name": "address",
-            "value": "156 av des Champs-Elysées 75008 Paris"
+            "value": params.address_arrival
           }
         ]
       },
@@ -65,9 +69,9 @@ app.get('/', function (req, res) {
 
     mapi_sdk.launch(function (error, result) {
 
-      if (error) {
-        throw err;
-      }
+      if (error) throw error;
+
+      console.log(JSON.stringify(result.results));
 
       let myResults = [];
 
@@ -76,16 +80,14 @@ app.get('/', function (req, res) {
         if (result.Transport != null) {
           let transports = result.Transport
           transports.forEach(function (transport) {
-            console.log(transport)
             if (transport.fare != null && transport.name != null) {
-              //Clean price
               let regexPrice = /(\d{1,2})-(\d{1,2})/g
               let match = regexPrice.exec(transport.fare);
               if (match != null) {
                 let price1 = parseInt(match[1]);
                 let price2 = parseInt(match[2]);
                 let average_price = (price1 + price2) / 2;
-                if (average_price != null) {
+                if (average_price != null && average_price < 20) {
                   myResults.push({
                     price: average_price,
                     name: transport.name
@@ -103,37 +105,25 @@ app.get('/', function (req, res) {
         else return 1
       })
 
-      //Using params
-      if (params.max_price != null) {
-        let newResults = [];
-        myResults.forEach(function (result) {
-          if (result.price < params.max_price) {
-            newResults.push(result);
-          }
-        }, this);
-        myResults = newResults;
-      }
-
-      /**
-       * This fonction is mandatory to return your reusults
-       * First param is error to manage erros and the second is the result
-       */
       exit(myResults);
-
-      /**
-       * Your code end here #######
-       */
-
     })
+
+    
+    /**
+     * Your code end here 😃
+     */
+    // ##########################################################################
   }
 
   //Simulating results
   simulatedEnv(function (result) {
-    res.json(result);
+    res.json({original_params: params, result: result});
   });
 
 })
 
 app.listen(4000, function () {
   console.log('Meta API - Spells Playground listening on port 4000!')
+  console.log('Please open : http://localhost:4000')
+  console.log("Don't forget to add some parameters to the URL if you're using it ;)")
 });

@@ -1,7 +1,7 @@
 {
   "name": "meta-api-spells-playground",
-  "version": "0.1.0",
-  "description": "Meta API Spells",
+  "version": "0.1.1",
+  "description": "Meta API Spells : https://meta-api.io/spells",
   "main": "index.js",
   "scripts": {
     "dev": "nodemon -w src --exec \"babel-node src \"",
@@ -12,14 +12,14 @@
   "author": "mat250 <mat250.alter@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.16.1",
-    "meta-api-sdk": "latest",
+    "express": "^4.16.2",
+    "meta-api-sdk": "^0.1.1",
     "request": "^2.83.0"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
     "babel-core": "^6.26.0",
-    "babel-preset-env": "^1.6.0",
+    "babel-preset-env": "^1.6.1",
     "eslint": "^3.1.1",
     "nodemon": "^1.9.2"
   },
