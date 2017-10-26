@@ -14,7 +14,9 @@ More info about **Meta API Spells** here : https://meta-api.io/spells
 
 3. `npm run dev` : **auto reload** or `npm run debug` : **debugger enabled**
 
-4. Copy / Paste your code on [Meta API Spells](https://meta-api.io/spells)
+4. Write your code between marks
+
+5. Copy / Paste your code on [Meta API Spells](https://meta-api.io/spells)
 
 ### How to
 
