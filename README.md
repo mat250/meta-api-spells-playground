@@ -6,6 +6,16 @@ More info about **Meta API Spells** here : https://meta-api.io/spells
 
 ## How to use it
 
+### TL;DR
+
+1. `npm install`
+
+2. `npm run dev` : auto reload or `npm run debug` : debugger enabled
+
+3. Copy / Paste your code on [Meta API Spells](https://meta-api.io/spells)
+
+### How to
+
 Clone this repo on your computer
 
 Install all the dependancies with `npm install`
