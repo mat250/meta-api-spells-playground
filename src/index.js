@@ -1,11 +1,9 @@
 const express = require('express');
 const app = express();
-var mapi_sdk = require('meta-api-sdk');
+var Meta_API = require('meta-api-sdk');
 
 app.get('/', function (req, res) {
-
-  mapi_sdk.config('prod'); //You'll be able to change the URL of Meta API SDK if you want to use a proxy
-
+  
   var params = req.query; //Query parameters will be accessible through "params" inside the simulated environment
 
   //Simulating final execution environment
@@ -21,10 +19,64 @@ app.get('/', function (req, res) {
     //Catalog : https://meta-api.io/catalog/
     //Doc : https://meta-api.io/doc
 
-    mapi_sdk.import([
+    //New Meta API object to call Meta API engine
+    var mapi = new Meta_API();
+
+    var radius = "500";
+    if (params.radius != null) {
+      radius = params.radius;
+    }
+
+    mapi.import([
       {
-        "id": 0,
+        "id": 1,
         "type": "Geo",
+        "api_full_path": "https://maps.googleapis.com/maps/api/geocode/json",
+        "params": [
+          {
+            "name": "address",
+            "value": params.address_search
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "type": "Place",
+        "api_full_path": "https://maps.googleapis.com/maps/api/place/nearbysearch/json",
+        "params": [
+          {
+            "name": "location",
+            "connect_to": 1
+          },
+          {
+            "name": "type",
+            "value": "restaurant"
+          },
+          {
+            "name": "radius",
+            "value": radius
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "type": "Place",
+        "api_full_path": "https://maps.googleapis.com/maps/api/place/details/json",
+        "params": [
+          {
+            "name": "placeid",
+            "connect_to": 2
+          },
+          {
+            "name": "language",
+            "value": "fr"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "type": "Geo",
+        "api_full_path": "https://maps.googleapis.com/maps/api/geocode/json",
         "params": [
           {
             "name": "address",
@@ -33,82 +85,128 @@ app.get('/', function (req, res) {
         ]
       },
       {
-        "id": 1,
-        "type": "Geo",
-        "params": [
-          {
-            "name": "address",
-            "value": params.address_arrival
-          }
-        ]
-      },
-      {
-        "id": 2,
+        "id": 5,
         "type": "Transport",
-
+  
         "params": [
           {
             "name": "start_latitude",
-            "connect_to": 0
+            "connect_to": 4
           },
           {
             "name": "start_longitude",
-            "connect_to": 0
+            "connect_to": 4
           },
           {
             "name": "end_latitude",
-            "connect_to": 1
+            "connect_to": 2
           },
           {
             "name": "end_longitude",
-            "connect_to": 1
+            "connect_to": 2
           }
         ]
       }
     ]);
 
-    mapi_sdk.launch(function (error, result) {
+    mapi.launch(function (error, mapi_result) {
 
       if (error) throw error;
 
-      console.log(JSON.stringify(result.results));
+      console.log(JSON.stringify(mapi_result.results));
 
       let myResults = [];
 
       //Creating new object
-      result.results.forEach(function (result) {
-        if (result.Transport != null) {
-          let transports = result.Transport
-          transports.forEach(function (transport) {
-            if (transport.fare != null && transport.name != null) {
-              let regexPrice = /(\d{1,2})-(\d{1,2})/g
-              let match = regexPrice.exec(transport.fare);
-              if (match != null) {
-                let price1 = parseInt(match[1]);
-                let price2 = parseInt(match[2]);
-                let average_price = (price1 + price2) / 2;
-                if (average_price != null && average_price < 20) {
-                  myResults.push({
-                    price: average_price,
-                    name: transport.name
-                  })
-                }
-              }
-            }
-          }, this);
-        }
-      }, this);
+      if (mapi_result.results[2] != null && mapi_result.results[2].Place != null) {
+        let places = mapi_result.results[2].Place
+        places.forEach(function (place) {
+          if (place.rating >= 3.8) {
+            delete place.photos;
+            delete place.reviews;
+            myResults.push(place);
+          }
+        }, this);
+      }
 
-      //Sorting prices
-      myResults.sort((a, b) => {
-        if (a.price < b.price) return -1
-        else return 1
-      })
-
-      exit(myResults);
+    //Sorting by rating
+    myResults.sort((a, b) => {
+      if (a.rating > b.rating) return -1
+      else return 1
     })
 
+    //Looking for Uber for these places
+    if (mapi_result.results[4] != null && mapi_result.results[4].Transport != null) {
+      myResults.forEach(place => {
+        let previousPlaceIndex = mapi_result.results[1].Place.findIndex(aPlace => aPlace.id == place.parents[0]);
+        if (previousPlaceIndex != -1) {
+          let previousGeo = mapi_result.results[1].Geo[previousPlaceIndex];
+          if (previousGeo != null) {
+            let relatedUbers = mapi_result.results[4].Transport.filter(uber => uber.parents.includes(previousGeo.id));
+            if (relatedUbers.length > 0) {
+              let minPrice = null; 
+              let maxPrice = null;
+              relatedUbers.forEach(transport => {
+                if (transport.fare != null && transport.name != null) {
+                  //Clean price
+                  let regexPrice = /(\d{1,2})-(\d{1,2})/g
+                  let match = regexPrice.exec(transport.fare);
+                  if (match != null) {
+                    let price1 = parseInt(match[1]);
+                    let price2 = parseInt(match[2]);
+                    let average_price = (price1 + price2) / 2;
+                    if (average_price != null) {
+                      if (minPrice == null || average_price < minPrice) minPrice = average_price;
+                      if (maxPrice == null || average_price > maxPrice) maxPrice = average_price;
+                    }
+                  }
+                }
+              });
+              place.uber_min_price = minPrice;
+              place.uber_max_price = maxPrice;
+            }
+          }
+        }
+      });
+    }
+
+    //Setting HTML Render
+    var final = {};
+    final.results = myResults;
+    final.html_render = {
+      title: "Les meilleurs resto",
+      description: `Sélection des meilleurs resto autour de ${params.address}`,
+      cards: []
+    };
     
+    myResults.forEach(function(result) {
+      var card = {
+        title: result.name,
+        title_chip: result.rating + "⭐",
+        title_chip2: `🚘 ${result.uber_min_price}€ - ${result.uber_max_price}€`,
+        text: result.address,
+        text2: result.phone_number,
+        source: "Google Maps",
+        link: {
+          target: "http://maps.google.com/?q=" + result.name + ", " + result.address,
+          text: "Voir sur Google Maps"
+        }
+      }
+      if (result.website !== null) {
+        card.link2 = {
+          target: result.website,
+          text: "Site web"
+        }
+      }
+      final.html_render.cards.push(card);
+    }, this);
+
+    //console.log(JSON.stringify(myResults));
+    
+    exit(final);
+    })
+
+
     /**
      * Your code end here 😃
      */
@@ -117,7 +215,7 @@ app.get('/', function (req, res) {
 
   //Simulating results
   simulatedEnv(function (result) {
-    res.json({original_params: params, result: result});
+    res.json({ original_params: params, result: result });
   });
 
 })
