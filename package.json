@@ -14,7 +14,8 @@
   "dependencies": {
     "express": "^4.16.2",
     "meta-api-sdk": "^0.3.3",
-    "request": "^2.83.0"
+    "request": "^2.83.0",
+    "string-similarity": "^1.2.0"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
