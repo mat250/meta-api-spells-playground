@@ -24,183 +24,108 @@ app.get('/', function (req, res) {
     //Doc : https://meta-api.io/doc
 
     //New Meta API object to call Meta API engine
-    var mapi_sdk = new Meta_API("dev", "https://api.meta-api.io/api");
+    var mapi_sdk = new Meta_API("dev", "http://localhost:8080/api");
 
-    var radius = "500";
-    if (params.radius != null) {
-      radius = params.radius;
+    const transportModes = [
+      {
+        key: "walking",
+        label: "à pied"
+      },
+      {
+        key: "driving",
+        label: "en voiture"
+      },
+      {
+        key: "bicycling",
+        label: "à vélo"
+      },
+      {
+        key: "transit",
+        label: "en transport en commun"
+      }
+    ]
+
+    let transportMode = transportModes[3];
+
+    if (params.transport_mode) {
+      const findTransport = transportModes.find((transport) => {return transport.key == params.transport_mode});
+      if (findTransport) {
+        transportMode = findTransport;
+      } else {
+        throw new Error(`This transport mode : ${params.transport_mode} in not in available transport modes : ${transportModes.map(transport => {return transport.key}).join(', ')}`);
+      }
     }
 
     mapi_sdk.import([
       {
         "id": 1,
-        "type": "Geo",
-        "api_full_path": "https://maps.googleapis.com/maps/api/geocode/json",
+        "type": "Transport",
+        "api_full_path": "https://maps.googleapis.com/maps/api/directions/json",
         "params": [
-          {
-            "name": "address",
-            "value": params.address
-          }
+            {
+                "name": "origin",
+                "value": params.origin
+            },
+            {
+                "name": "destination",
+                "value": params.destination
+            },
+            {
+                "name": "mode",
+                "value": transportMode.key
+            },
+            {
+                "name": "language",
+                "value": "fr"
+            }
         ]
-      },
-      {
-        "id": 2,
-        "type": "Place",
-        "api_full_path": "https://maps.googleapis.com/maps/api/place/nearbysearch/json",
-        "params": [
-          {
-            "name": "location",
-            "connect_to": 1
-          },
-          {
-            "name": "type",
-            "value": "restaurant"
-          },
-          {
-            "name": "radius",
-            "value": radius
-          }
-        ]
-      },
-      {
-        "id": 3,
-        "type": "Place",
-        "api_full_path": "https://maps.googleapis.com/maps/api/place/details/json",
-        "params": [
-          {
-            "name": "placeid",
-            "connect_to": 2
-          },
-          {
-            "name": "language",
-            "value": "fr"
-          }
-        ]
-      }
+    }
     ]);
-
-
 
     mapi_sdk.launch(function (error, mapi_result) {
 
       if (error) throw error;
 
-      console.log(JSON.stringify(mapi_result.results));
+      // console.log(JSON.stringify(mapi_result.results));
 
       let myResults = [];
 
-      //Search starting from the place for LaFourchette
-      var mapi2 = new Meta_API();
+      if (mapi_result.results[0] && mapi_result.results[0].Transport && mapi_result.results[0].Transport[0]) {
+        const transports = mapi_result.results[0].Transport;
+        myResults = transports;
+      }
 
-      mapi2.import([{
-        "id": 0,
-        "type": "Restaurant",
-        "api_full_path": "http://meta-api.io:8593/",
-        "params": [
-          {
-            "name": "coordinates",
-            "value": mapi_result.results[0].Geo[0].latitude + "," + mapi_result.results[0].Geo[0].longitude
-          }
-        ]
-      }])
-
-      mapi2.launch(function (error, mapi_result2) {
-        console.log(mapi_result2);
-
-        if (error) throw error;
-        //Creating new object
-        if (mapi_result.results[2] != null && mapi_result.results[2].Place != null) {
-          let places = mapi_result.results[2].Place
-          places.forEach(function (place) {
-            if (place.rating >= 3.8) {
-              delete place.photos;
-              delete place.reviews;
-              place.source = "Google Maps";
-              place.rating = place.rating * 2; //Passage à une note sur 10
-              myResults.push(place);
-            }
-          }, this);
-        }
-
-        if (mapi_result2.results[0] != null && mapi_result2.results[0].Restaurant != null) {
-          let restos = mapi_result2.results[0].Restaurant
-          restos.forEach(function (resto) {
-            if (resto.rating >= 7.5) {
-              resto.source = "La Fourchette";
-              //Find string similarity to combine objects
-              let findIndex = myResults.findIndex(aPlace => {
-                //Check name similarities
-                if (resto.name.indexOf(aPlace.name) != -1 || aPlace.name.indexOf(resto.name) != -1) {
-                  return true;
-                } else {
-                  if (tools.stringSimilarity.compareTwoStrings(aPlace.name, resto.name) >= 0.8) {
-                    return true;
-                  } else {
-                    return false;
-                  }
-                }
-              })
-              if (findIndex != -1) {
-                resto = Object.assign({}, myResults[findIndex], resto); //Merging objects
-                resto.source = "GMaps + LaFourchette";
-                myResults[findIndex] = resto;
-              } else {
-                myResults.push(resto);
-              }
-            }
-          }, this);
-        }
-
-        //Sorting by rating
-        myResults.sort((a, b) => {
-          if (a.rating > b.rating) return -1
-          else return 1
-        })
 
         //Setting HTML Render
         var final = {};
         final.results = myResults;
         final.html_render = {
-          title: "Les meilleurs resto",
-          description: `Sélection des meilleurs resto autour de ${params.address}`,
+          title: "Transport",
+          description: `Transport de ${params.origin} à ${params.destination} ${transportMode.label}`,
           cards: []
         };
 
         myResults.forEach(function (result) {
 
-          let text2 = "";
-          if (result.menu_price != null) {
-            text2 = "Prix moyen du menu : " + result.menu_price + "€";
-            if (result.promotion != null) {
-              text2 += " / Promotion : " + result.promotion;
-            }
-          } else {
-            text2 = result.phone_number;
+          let text2 = `Durée : ${result.duration.duration_human}
+          Distance : ${result.distance.distance_human}`;
+
+          let title_chip2 = `📏 ${result.distance.distance_human}`;
+          if (result.fare) {
+            title_chip2 = `💵 ${result.fare.text}`;
           }
 
           var card = {
-            title: result.name,
-            title_chip: "⭐" + result.rating + "/10",
-            //title_chip2: "4.5 ",
-            text: result.address,
+            title: `Transport ${transportMode.label}`,
+            title_chip: `⏱️ ${result.duration.duration_human}`,
+            title_chip2: title_chip2,
+            text: `Transport de ${params.origin} à ${params.destination} ${transportMode.label}`,
             text2: text2,
             source: result.source,
-            link: {
-              target: "http://maps.google.com/?q=" + result.name + ", " + result.address,
-              text: "Google Maps"
-            }
-          }
-          if (result.link != null) {
-            card.link2 = {
-              target: result.link,
-              text: "LaFourchette"
-            }
-          }
-          if (result.website != null) {
-            card.link2 = {
-              target: result.website,
-              text: "Site web"
-            }
+            // link: {
+            //   target: "http://maps.google.com/?q=" + result.name + ", " + result.address,
+            //   text: "Google Maps"
+            // }
           }
           final.html_render.cards.push(card);
         }, this);
@@ -208,11 +133,6 @@ app.get('/', function (req, res) {
         //console.log(JSON.stringify(myResults));
 
         exit(final);
-
-      })
-
-
-
     })
 
 
