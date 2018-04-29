@@ -26,59 +26,28 @@ app.get('/', function (req, res) {
     //New Meta API object to call Meta API engine
     var mapi_sdk = new Meta_API("dev", "http://localhost:8080/api");
 
-    const transportModes = [
-      {
-        key: "walking",
-        label: "à pied"
-      },
-      {
-        key: "driving",
-        label: "en voiture"
-      },
-      {
-        key: "bicycling",
-        label: "à vélo"
-      },
-      {
-        key: "transit",
-        label: "en transport en commun"
-      }
-    ]
+    let metaParams = [];
 
-    let transportMode = transportModes[3];
-
-    if (params.transport_mode) {
-      const findTransport = transportModes.find((transport) => {return transport.key == params.transport_mode});
-      if (findTransport) {
-        transportMode = findTransport;
-      } else {
-        throw new Error(`This transport mode : ${params.transport_mode} in not in available transport modes : ${transportModes.map(transport => {return transport.key}).join(', ')}`);
-      }
+    if (params.location) {
+      metaParams = [{
+        name: "location",
+        value: params.location
+      }];
+    } else if (params.address) {
+      metaParams = [{
+        name: "address",
+        value: params.address
+      }];
+    } else {
+      throw new Error("Address or location not set");
     }
 
     mapi_sdk.import([
       {
         "id": 1,
-        "type": "Transport",
-        "api_full_path": "https://maps.googleapis.com/maps/api/directions/json",
-        "params": [
-            {
-                "name": "origin",
-                "value": params.origin
-            },
-            {
-                "name": "destination",
-                "value": params.destination
-            },
-            {
-                "name": "mode",
-                "value": transportMode.key
-            },
-            {
-                "name": "language",
-                "value": "fr"
-            }
-        ]
+        "type": "Cinema",
+        "api_full_path": "http://apigator.net:8585/",
+        "params": metaParams
     }
     ]);
 
@@ -90,37 +59,52 @@ app.get('/', function (req, res) {
 
       let myResults = [];
 
-      if (mapi_result.results[0] && mapi_result.results[0].Transport && mapi_result.results[0].Transport[0]) {
-        const transports = mapi_result.results[0].Transport;
-        myResults = transports;
-      }
+      //Rassemblement des cinémas et des films
+
+      //TODO : création d'une carte par cinéma + liste de films associés : besoin de gérer un tableau lié à une propriété
+      mapi_result.results[0].Cinema.map(cinema => {
+        const newCine = {
+          name: cinema.name,
+          address: cinema.address
+        }
+
+        const moviesOfCine = mapi_result.results[0].Movie.filter(movie => {
+          if (movie.parents.find(parent => {return parent.id === cinema.id})) {
+            return movie;
+          } else {
+            return null;
+          }
+        });
+        if (moviesOfCine) {
+          newCine.movies = moviesOfCine.map(movie => {
+            return {
+              title: movie.title,
+              showtimes: movie.showtimes
+            }
+          });
+        }
+
+        myResults.push(newCine);
+      });
 
 
         //Setting HTML Render
         var final = {};
         final.results = myResults;
         final.html_render = {
-          title: "Transport",
-          description: `Transport de ${params.origin} à ${params.destination} ${transportMode.label}`,
+          title: "Cinéma",
+          description: `Cinéma et séances de films`,
           cards: []
         };
 
         myResults.forEach(function (result) {
 
-          let text2 = `Durée : ${result.duration.duration_human}
-          Distance : ${result.distance.distance_human}`;
-
-          let title_chip2 = `📏 ${result.distance.distance_human}`;
-          if (result.fare) {
-            title_chip2 = `💵 ${result.fare.text}`;
-          }
-
           var card = {
-            title: `Transport ${transportMode.label}`,
-            title_chip: `⏱️ ${result.duration.duration_human}`,
-            title_chip2: title_chip2,
-            text: `Transport de ${params.origin} à ${params.destination} ${transportMode.label}`,
-            text2: text2,
+            title: result.name,
+            title_chip: `🎞️ ${result.movies.length} films`,
+            title_chip2: `🎟️ ${result.movies.reduce((acc, movie) => acc + movie.showtimes.length, 0)} séances`,
+            text: `Films disponibles : ${result.movies.map(movie => movie.title).join(', ')}`,
+            text2: result.address,
             source: result.source,
             // link: {
             //   target: "http://maps.google.com/?q=" + result.name + ", " + result.address,
